@@ -68,3 +68,10 @@ if(SUPER_SCIENCE_BUILD_DESKTOP)
   set_target_properties(super_science_desktop PROPERTIES AUTOMOC ON)
   target_link_libraries(super_science_desktop PRIVATE super_science Qt6::Widgets)
 endif()
+
+# Educational microbenchmarks are explicit, not part of the default test suite.
+option(SUPER_SCIENCE_BUILD_BENCHMARKS "Build optional numerical benchmarks" OFF)
+if(SUPER_SCIENCE_BUILD_BENCHMARKS)
+  add_executable(matmul_bench benchmarks/matmul_bench.cpp)
+  target_link_libraries(matmul_bench PRIVATE super_science)
+endif()
