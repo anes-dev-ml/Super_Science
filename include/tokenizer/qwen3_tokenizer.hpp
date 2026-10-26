@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -24,6 +25,7 @@ class Qwen3Tokenizer
     std::unordered_map<std::string, std::size_t> mergeRank_;
     std::unordered_map<std::string, std::size_t> special_;
     std::vector<std::string> idToToken_;
+    std::unordered_set<std::size_t> skipOnDecode_;
     std::array<std::string, 256> byteToSymbol_{};
     std::unordered_map<char32_t, unsigned char> symbolToByte_;
 
@@ -278,14 +280,18 @@ public:
         if (root.contains("added_tokens"))
             for (const auto &t : root.at("added_tokens"))
             {
-                if (!t.value("special", false))
-                    continue;
-                auto content = t.at("content").get<std::string>();
-                auto id = t.at("id").get<std::size_t>();
-                special_[content] = id;
+                const auto content = t.at("content").get<std::string>();
+                const auto id = t.at("id").get<std::size_t>();
+                const bool isSpecial = t.value("special", false);
+                // Added tokens are valid vocabulary entries even if special=false.
+                // Qwen3 uses that flag for its <think> and </think> markers.
                 if (id >= idToToken_.size())
                     idToToken_.resize(id + 1);
                 idToToken_[id] = content;
+                if (isSpecial || content == "<think>" || content == "</think>")
+                    skipOnDecode_.insert(id);
+                if (isSpecial)
+                    special_[content] = id;
             }
         for (const auto &name : {"<|im_start|>", "<|im_end|>", "<|im_sep|>"})
         {
@@ -324,14 +330,7 @@ public:
                     "Invalid token ID in decode: " + std::to_string(id));
             }
             const auto &token = idToToken_[id];
-            bool isSpecial = false;
-            for (const auto &t : special_)
-                if (t.second == id)
-                {
-                    isSpecial = true;
-                    break;
-                }
-            if (isSpecial)
+            if (skipOnDecode_.count(id))
             {
                 if (!skipSpecial)
                     out += token;
