@@ -294,13 +294,34 @@ private:
             throw std::invalid_argument("matvec dimension mismatch.");
         std::vector<float> output(shape[0]);
         const float *weight = matrix.dataPtr();
-        for (std::size_t row = 0; row < shape[0]; ++row)
+        const std::size_t rows = shape[0];
+        const std::size_t cols = shape[1];
+        const float *x = input.data();
+        // Each row is independent. OpenMP is optional: the serial path
+        // remains valid when the compiler has no OpenMP support.
+        // Parallelize only large products to avoid thread-launch overhead
+        // on attention head projections and small unit-test matrices.
+#if defined(_OPENMP)
+#pragma omp parallel for schedule(static) if(rows >= 2048 && rows * cols >= 1048576)
+#endif
+        for (std::ptrdiff_t row = 0; row < static_cast<std::ptrdiff_t>(rows); ++row)
         {
-            const float *values = weight + row * shape[1];
-            float dot = 0.0f;
-            for (std::size_t col = 0; col < shape[1]; ++col)
-                dot += values[col] * input[col];
-            output[row] = dot;
+            const float *values = weight + static_cast<std::size_t>(row) * cols;
+            // Four independent accumulators shorten the dependency chain,
+            // while preserving a predictable scalar float32 implementation.
+            float s0 = 0.0f, s1 = 0.0f, s2 = 0.0f, s3 = 0.0f;
+            std::size_t col = 0;
+            for (; col + 3 < cols; col += 4)
+            {
+                s0 += values[col] * x[col];
+                s1 += values[col + 1] * x[col + 1];
+                s2 += values[col + 2] * x[col + 2];
+                s3 += values[col + 3] * x[col + 3];
+            }
+            float dot = (s0 + s1) + (s2 + s3);
+            for (; col < cols; ++col)
+                dot += values[col] * x[col];
+            output[static_cast<std::size_t>(row)] = dot;
         }
         return output;
     }
