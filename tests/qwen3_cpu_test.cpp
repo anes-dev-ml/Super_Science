@@ -1,5 +1,6 @@
 #include "qwen3_cpu.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -93,5 +94,5 @@ int main()
     }
     assert(maximumContextEffect > 1e-4f);
 
-    std::cout << "Qwen3 CPU inference, streaming, and nonzero attention context PASSED!\\n";
+    std::cout << "Qwen3 CPU inference, streaming, and nonzero attention context PASSED!\n";
 }
