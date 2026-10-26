@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
@@ -146,13 +147,16 @@ public:
         return step(token, true);
     }
 
-    std::vector<std::size_t> generate(const std::vector<std::size_t> &prompt,
-                                      std::size_t newTokens)
+    // Callbacks run between tokens on the generation thread.
+    // Do not invoke this method concurrently on the same model.
+    std::vector<std::size_t> generateStreaming(
+        const std::vector<std::size_t> &prompt, std::size_t newTokens,
+        const std::function<bool(std::size_t)> &onToken = {})
     {
         if (prompt.empty())
             throw std::invalid_argument("Prompt must have at least one token.");
         reset();
-        std::vector<std::size_t> result = prompt;
+        std::vector<std::size_t> output;
         std::vector<float> logits;
         for (std::size_t i = 0; i < prompt.size(); ++i)
             logits = step(prompt[i], i + 1 == prompt.size() && newTokens != 0);
@@ -160,13 +164,24 @@ public:
         {
             const auto next = static_cast<std::size_t>(
                 std::max_element(logits.begin(), logits.end()) - logits.begin());
-            result.push_back(next);
-            if (next == 151643 || next == 151645) // Qwen3 EOS markers
+            output.push_back(next);
+            if (next == 151643 || next == 151645)
+                break;
+            if (onToken && !onToken(next))
                 break;
             if (n + 1 < newTokens)
                 logits = step(next, true);
         }
-        return result;
+        return output;
+    }
+
+    std::vector<std::size_t> generate(const std::vector<std::size_t> &prompt,
+                                      std::size_t newTokens)
+    {
+        auto output = prompt;
+        auto generated = generateStreaming(prompt, newTokens);
+        output.insert(output.end(), generated.begin(), generated.end());
+        return output;
     }
 
 private:
