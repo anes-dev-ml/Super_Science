@@ -65,5 +65,33 @@ int main()
         rejected = true;
     }
     assert(rejected);
-    std::cout << "Qwen3 CPU token-to-logits, decode cache, and greedy generation PASSED!\n";
+    // Nonzero Q/K/V and output weights: a preceding token must affect
+    // subsequent logits through the causal attention KV cache.
+    // The earlier identity-only tests cannot exercise this behavior.
+    auto activeLayer = layer;
+    activeLayer.query.at({0, 0}) = 1.0f;
+    activeLayer.query.at({1, 1}) = 1.0f;
+    activeLayer.key.at({0, 0}) = 1.0f;
+    activeLayer.key.at({1, 1}) = 1.0f;
+    activeLayer.value.at({0, 0}) = 1.0f;
+    activeLayer.value.at({1, 1}) = 1.0f;
+    activeLayer.output.at({0, 0}) = 0.7f;
+    activeLayer.output.at({1, 1}) = 0.7f;
+
+    Qwen3Cpu contextual(config, embeddings, {activeLayer}, norm);
+    Qwen3Cpu isolated(config, embeddings, {activeLayer}, norm);
+    contextual.forwardToken(0);
+    const auto withPreviousToken = contextual.forwardToken(1);
+    const auto withoutPreviousToken = isolated.forwardToken(1);
+    float maximumContextEffect = 0.0f;
+    for (std::size_t i = 0; i < withPreviousToken.size(); ++i)
+    {
+        assert(std::isfinite(withPreviousToken[i]));
+        assert(std::isfinite(withoutPreviousToken[i]));
+        maximumContextEffect = std::max(maximumContextEffect,
+                                        std::fabs(withPreviousToken[i] - withoutPreviousToken[i]));
+    }
+    assert(maximumContextEffect > 1e-4f);
+
+    std::cout << "Qwen3 CPU inference, streaming, and nonzero attention context PASSED!\\n";
 }
