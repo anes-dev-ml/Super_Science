@@ -23,6 +23,18 @@ int main(){
     assert(t.decode({151667, 151668}, true).empty());
     const auto expected = std::string("<|im_start|>user\nHello<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n");
     assert(t.decode(chat, false) == expected);
+    const std::vector<std::pair<std::string, std::string>> turns{
+        {"user", "Hello"}, {"assistant", "Hi!"}, {"user", "Again?"}};
+    const auto multi = t.chatConversation(turns);
+    assert(t.decode(multi, false) ==
+        "<|im_start|>user\nHello<|im_end|>\n"
+        "<|im_start|>assistant\nHi!<|im_end|>\n"
+        "<|im_start|>user\nAgain?<|im_end|>\n"
+        "<|im_start|>assistant\n<think>\n\n</think>\n\n");
+    bool invalidRoles = false;
+    try { t.chatConversation({{"assistant", "not a user turn"}}); }
+    catch (const std::invalid_argument &) { invalidRoles = true; }
+    assert(invalidRoles);
     const auto thinkingChat = t.chatPrompt("Hello", true);
     assert(t.decode(thinkingChat, false) == "<|im_start|>user\nHello<|im_end|>\n<|im_start|>assistant\n");
     bool rejected=false;try{t.encode(std::string("\xc0\x80",2));}catch(const std::invalid_argument&){rejected=true;}assert(rejected);
