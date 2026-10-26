@@ -5,6 +5,8 @@
 #include <QAtomicInteger>
 #include <QFont>
 #include <QHBoxLayout>
+#include <QKeyEvent>
+#include <QScrollBar>
 #include <QLabel>
 #include <QMetaObject>
 #include <QPushButton>
