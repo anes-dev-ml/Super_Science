@@ -42,3 +42,12 @@ elseif(MSVC)
   target_compile_options(tokenizer_tests PRIVATE /UNDEBUG)
 endif()
 add_test(NAME tokenizer_tests COMMAND tokenizer_tests)
+
+# Optional native desktop application. The inference library remains Qt-free.
+option(SUPER_SCIENCE_BUILD_DESKTOP "Build Qt desktop chat application" OFF)
+if(SUPER_SCIENCE_BUILD_DESKTOP)
+  find_package(Qt6 REQUIRED COMPONENTS Widgets)
+  add_executable(super_science_desktop apps/desktop/main.cpp)
+  set_target_properties(super_science_desktop PROPERTIES AUTOMOC ON)
+  target_link_libraries(super_science_desktop PRIVATE super_science Qt6::Widgets)
+endif()
