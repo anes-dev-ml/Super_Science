@@ -35,6 +35,23 @@ int main()
 
     const auto tokens = model.generate({2, 1}, 3);
     assert((tokens == std::vector<std::size_t>{2, 1, 1, 1, 1}));
+    std::vector<std::size_t> streamed;
+    const auto stream = model.generateStreaming({2, 1}, 3, [&](std::size_t id) {
+        streamed.push_back(id);
+        return true;
+    });
+    assert((stream == std::vector<std::size_t>{1, 1, 1}));
+    assert(streamed == stream);
+
+    std::size_t callbacks = 0;
+    const auto stopped = model.generateStreaming({2, 1}, 10, [&](std::size_t) {
+        ++callbacks;
+        return false;
+    });
+    assert(callbacks == 1);
+    assert(stopped.size() == 1);
+    assert(stopped.front() == 1);
+
     model.reset();
     assert(model.position() == 0);
 
