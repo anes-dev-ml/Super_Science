@@ -34,11 +34,19 @@ add_executable(qwen3_cpu_tests tests/qwen3_cpu_test.cpp)
 target_link_libraries(qwen3_cpu_tests PRIVATE super_science)
 add_executable(qwen3_file_tests tests/qwen3_file_test.cpp)
 target_link_libraries(qwen3_file_tests PRIVATE super_science)
-# Keep assert() active in tests even when the project uses a Release build.
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(inference_tests PRIVATE -UNDEBUG)
-  target_compile_options(qwen3_cpu_tests PRIVATE -UNDEBUG)
-endif()
+# CMake Release configurations normally define NDEBUG. The tests below use
+# assert(), so explicitly keep assertions enabled on each supported compiler.
+# This applies to test executables only, never production programs.
+function(super_science_enable_test_assertions target)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /UNDEBUG)
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(${target} PRIVATE -UNDEBUG)
+  endif()
+endfunction()
+
+super_science_enable_test_assertions(inference_tests)
+super_science_enable_test_assertions(qwen3_cpu_tests)
 
 enable_testing()
 add_test(NAME inference_tests COMMAND inference_tests)
@@ -49,11 +57,7 @@ add_test(NAME qwen3_file_tests COMMAND qwen3_file_tests)
 
 add_executable(tokenizer_tests tests/tokenizer_test.cpp)
 target_link_libraries(tokenizer_tests PRIVATE super_science)
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(tokenizer_tests PRIVATE -UNDEBUG)
-elseif(MSVC)
-  target_compile_options(tokenizer_tests PRIVATE /UNDEBUG)
-endif()
+super_science_enable_test_assertions(tokenizer_tests)
 add_test(NAME tokenizer_tests COMMAND tokenizer_tests)
 
 # Optional native desktop application. The inference library remains Qt-free.
