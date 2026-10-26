@@ -290,8 +290,8 @@ public:
                 idToToken_[id] = content;
                 if (isSpecial || content == "<think>" || content == "</think>")
                     skipOnDecode_.insert(id);
-                if (isSpecial)
-                    special_[content] = id;
+                // Permit explicit insertion of any added token in a chat template.
+                special_[content] = id;
             }
         for (const auto &name : {"<|im_start|>", "<|im_end|>", "<|im_sep|>"})
         {
@@ -356,12 +356,19 @@ public:
         add("<|im_start|>");
         plain("user\n");
         plain(userText);
-        if (!thinking)
-            plain(" /no_think");
         add("<|im_end|>");
         plain("\n");
         add("<|im_start|>");
         plain("assistant\n");
+        // Qwen3 hard switch for enable_thinking=false: prefill an empty
+        // reasoning block in the assistant turn, not /no_think in user text.
+        if (!thinking)
+        {
+            add("<think>");
+            plain("\n\n");
+            add("</think>");
+            plain("\n\n");
+        }
         return ids;
     }
 };
