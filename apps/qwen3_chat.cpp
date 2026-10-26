@@ -1,6 +1,8 @@
 #include "qwen3_cpu.hpp"
 #include "tokenizer/qwen3_tokenizer.hpp"
 #include <algorithm>
+#include <chrono>
+#include <iomanip>
 #include <cstddef>
 #include <filesystem>
 #include <iostream>
@@ -48,9 +50,22 @@ int main(int argc, char **argv)
         if (promptIds.empty())
             throw std::invalid_argument("Prompt tokenization produced no tokens");
         std::cerr << "Prompt tokens: " << promptIds.size() << "\nLoading Qwen3 weights...\n";
+        using Clock = std::chrono::steady_clock;
+        const auto loadStart = Clock::now();
         Qwen3Cpu model = Qwen3Cpu::fromDirectory(directory);
-        auto all = model.generate(promptIds, maxTokens);
-        std::vector<std::size_t> generated(all.begin() + static_cast<std::ptrdiff_t>(promptIds.size()), all.end());
+        const auto loadEnd = Clock::now();
+        const auto start = Clock::now();
+        Clock::time_point firstToken;
+        bool seenFirst = false;
+        const auto generated = model.generateStreaming(promptIds, maxTokens, [&](std::size_t) {
+            if (!seenFirst)
+            {
+                firstToken = Clock::now();
+                seenFirst = true;
+            }
+            return true;
+        });
+        const auto end = Clock::now();
         std::cerr << "Generated token IDs: ";
         for (std::size_t id : generated)
         {
@@ -60,6 +75,22 @@ int main(int argc, char **argv)
 
         std::cout << tokenizer.decode(generated, true) << '\n';
         std::cerr << "Generated " << generated.size() << " tokens\n";
+        auto ms = [](Clock::duration duration) {
+            return std::chrono::duration<double, std::milli>(duration).count();
+        };
+        std::cerr << std::fixed << std::setprecision(1)
+                  << "Model load: " << ms(loadEnd - loadStart) << " ms\n"
+                  << "Total inference: " << ms(end - start) << " ms\n";
+        if (seenFirst)
+        {
+            const auto firstMs = ms(firstToken - start);
+            const auto decodeSeconds = std::chrono::duration<double>(end - firstToken).count();
+            std::cerr << "Time to first token (includes prefill): "
+                      << firstMs << " ms\n";
+            if (generated.size() > 1 && decodeSeconds > 0.0)
+                std::cerr << "Subsequent tokens: "
+                          << (generated.size() - 1) / decodeSeconds << " tok/s\n";
+        }
         return 0;
     }
     catch (const std::exception &e)
