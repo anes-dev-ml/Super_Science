@@ -24,6 +24,9 @@ target_link_libraries(qwen3_chat PRIVATE super_science)
 add_executable(qwen3_cli apps/qwen3_cli.cpp)
 target_link_libraries(qwen3_cli PRIVATE super_science)
 
+add_executable(tokenizer_cli apps/tokenizer_cli.cpp)
+target_link_libraries(tokenizer_cli PRIVATE super_science)
+
 add_executable(inference_tests tests/main.cpp)
 target_link_libraries(inference_tests PRIVATE super_science)
 add_executable(safetensors_tests tests/safetensors_test.cpp)
