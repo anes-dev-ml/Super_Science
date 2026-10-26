@@ -346,6 +346,44 @@ public:
         }
         return out;
     }
+    // Serialize explicit user/assistant turns. The last turn must be a user
+    // message; the assistant prefix is appended ready for generation.
+    std::vector<std::size_t> chatConversation(
+        const std::vector<std::pair<std::string, std::string>> &messages,
+        bool thinking = false) const
+    {
+        if (messages.empty() || messages.back().first != "user")
+            throw std::invalid_argument("Conversation must end with a user message.");
+        std::vector<std::size_t> ids;
+        auto add = [&](const std::string &name) { ids.push_back(special(name)); };
+        auto plain = [&](const std::string &value) {
+            const auto part = encode(value);
+            ids.insert(ids.end(), part.begin(), part.end());
+        };
+        for (std::size_t i = 0; i < messages.size(); ++i)
+        {
+            const auto &message = messages[i];
+            const auto &role = message.first;
+            if (role != (i % 2 == 0 ? "user" : "assistant"))
+                throw std::invalid_argument("Conversation roles must alternate user/assistant.");
+            add("<|im_start|>");
+            plain(role + "\n");
+            plain(message.second);
+            add("<|im_end|>");
+            plain("\n");
+        }
+        add("<|im_start|>");
+        plain("assistant\n");
+        if (!thinking)
+        {
+            add("<think>");
+            plain("\n\n");
+            add("</think>");
+            plain("\n\n");
+        }
+        return ids;
+    }
+
     std::vector<std::size_t> chatPrompt(const std::string &userText, bool thinking = false) const
     {
         std::vector<std::size_t> ids;
