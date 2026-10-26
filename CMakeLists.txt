@@ -5,6 +5,19 @@ add_library(super_science INTERFACE)
 target_include_directories(super_science INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(super_science INTERFACE cxx_std_17)
 
+# Use available CPU cores for large inference matrix-vector operations.
+# Optional and portable: builds without OpenMP retain the serial kernel.
+option(SUPER_SCIENCE_USE_OPENMP "Enable OpenMP CPU inference parallelism" ON)
+if(SUPER_SCIENCE_USE_OPENMP)
+  find_package(OpenMP QUIET COMPONENTS CXX)
+  if(OpenMP_CXX_FOUND)
+    target_link_libraries(super_science INTERFACE OpenMP::OpenMP_CXX)
+    message(STATUS "OpenMP CPU inference: enabled")
+  else()
+    message(STATUS "OpenMP unavailable; using single-threaded CPU inference")
+  endif()
+endif()
+
 add_executable(qwen3_chat apps/qwen3_chat.cpp)
 target_link_libraries(qwen3_chat PRIVATE super_science)
 
