@@ -82,3 +82,37 @@ generated tokens per reply; one generation at a time; no saved chat history;
 Stop is checked during token generation (long prompt prefill can delay it).
 Rebuild of KV state for each turn is intentional for correctness and simplicity.
 The existing CLI and tests do not require Qt unless the desktop option is enabled.
+
+
+## CPU inference performance
+
+The float32 reference engine can optionally parallelize large matrix-vector
+operations with OpenMP. It also uses independent accumulators for dot products.
+Builds without OpenMP still work; this is not a new model format or dependency
+for the desktop UI.
+
+With the MinGW/Qt desktop build, reconfigure and rebuild after pulling:
+
+```powershell
+cmake -S . -B build-desktop -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER="C:/Qt/Tools/mingw1310_64/bin/g++.exe" -DCMAKE_PREFIX_PATH="C:/Qt/6.12.0/mingw_64" -DSUPER_SCIENCE_BUILD_DESKTOP=ON -DSUPER_SCIENCE_USE_OPENMP=ON
+cmake --build build-desktop --parallel 4
+ctest --test-dir build-desktop --output-on-failure
+```
+
+The configuration should print `OpenMP CPU inference: enabled` if the
+toolchain supports it. To compare one and four worker threads on the same
+prompt (in a new PowerShell shell with Qt/MinGW available on PATH):
+
+```powershell
+$env:OMP_NUM_THREADS = "1"
+.\build-desktop\qwen3_chat.exe models/qwen3-0.6b --prompt "Explain what a KV cache does." --max-new-tokens 64
+$env:OMP_NUM_THREADS = "4"
+.\build-desktop\qwen3_chat.exe models/qwen3-0.6b --prompt "Explain what a KV cache does." --max-new-tokens 64
+```
+
+Repeat each run: CPU thermal behavior and process startup cause variability.
+The CLI reports model load time, time to first token (including prompt
+prefill), total inference time, and subsequent generated tokens per second.
+This optimization changes floating-point reduction order slightly; compare
+actual model outputs as well as performance. It does not yet optimize prompt
+prefill or preserve KV caches between chat turns.
