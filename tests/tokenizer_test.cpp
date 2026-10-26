@@ -12,14 +12,19 @@ int main(){
     bool taken[256]={};for(int b=33;b<=126;++b)taken[b]=true;for(int b=161;b<=172;++b)taken[b]=true;for(int b=174;b<=255;++b)taken[b]=true;
     auto utf8=[](int x){std::string s;if(x<128)s+=char(x);else if(x<2048){s+=char(0xc0|(x>>6));s+=char(0x80|(x&63));}else{s+=char(0xe0|(x>>12));s+=char(0x80|((x>>6)&63));s+=char(0x80|(x&63));}return s;};
     int extra=0;for(int b=0;b<256;++b){int cp=taken[b]?b:256+extra++;j["model"]["vocab"][utf8(cp)]=b;}
-    j["added_tokens"]=nlohmann::json::array({{{"id",256},{"content","<|im_start|>"},{"special",true}},{{"id",257},{"content","<|im_end|>"},{"special",true}}});
+    j["added_tokens"]=nlohmann::json::array({{{"id",256},{"content","<|im_start|>"},{"special",true}},{{"id",257},{"content","<|im_end|>"},{"special",true}},{{"id",151667},{"content","<think>"},{"special",false}},{{"id",151668},{"content","</think>"},{"special",false}}});
     {std::ofstream f(p);f<<j.dump();}
     Qwen3Tokenizer t(p.string());
     for(const auto& s:{std::string("Hello, world!"),std::string("it's WE'RE   123\n OK"),std::string("François 日本語 مرحبا 😀"),std::string(" a\t  \r\n")}){
         auto tokens=t.encode(s);assert(!tokens.empty());assert(t.decode(tokens)==s);
     }
     auto chat=t.chatPrompt("Hello");assert(chat.front()==256);assert(t.special("<|im_end|>")==257);
-    assert(t.decode(chat,false).find("<|im_start|>user\nHello /no_think<|im_end|>\n<|im_start|>assistant\n")!=std::string::npos);
+    assert(t.decode({151667, 151668}, false) == "<think></think>");
+    assert(t.decode({151667, 151668}, true).empty());
+    const auto expected = std::string("<|im_start|>user\nHello<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n");
+    assert(t.decode(chat, false) == expected);
+    const auto thinkingChat = t.chatPrompt("Hello", true);
+    assert(t.decode(thinkingChat, false) == "<|im_start|>user\nHello<|im_end|>\n<|im_start|>assistant\n");
     bool rejected=false;try{t.encode(std::string("\xc0\x80",2));}catch(const std::invalid_argument&){rejected=true;}assert(rejected);
     std::filesystem::remove(p);
     std::cout<<"Native tokenizer round-trip and chat tests PASSED\n";
