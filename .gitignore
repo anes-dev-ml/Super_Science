@@ -1,0 +1,83 @@
+# ==========================================
+# Super_Science - Git Ignore
+# ==========================================
+
+# Build directories
+build/
+build-*/
+cmake-build-*/
+out/
+bin/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+CTestTestfile.cmake
+install_manifest.txt
+
+# Compiled binaries and libraries
+*.exe
+*.dll
+*.so
+*.so.*
+*.dylib
+*.a
+*.lib
+*.obj
+*.o
+*.pdb
+*.ilk
+
+# Visual Studio / IDE
+.vs/
+.vscode/*
+!.vscode/extensions.json
+*.suo
+*.user
+*.sln.docstates
+
+# Model weights and checkpoints
+*.safetensors
+*.gguf
+*.ggml
+*.pt
+*.pth
+*.ckpt
+*.onnx
+*.bin
+
+# Local model directories
+models/
+checkpoints/
+weights/
+
+# Datasets and generated outputs
+datasets/
+data/raw/
+outputs/
+logs/
+*.log
+
+# Python utilities
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*~
+.DS_Store
+Thumbs.db
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key

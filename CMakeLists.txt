@@ -1,0 +1,39 @@
+cmake_minimum_required(VERSION 3.16)
+project(SuperScienceInference LANGUAGES CXX)
+
+add_library(super_science INTERFACE)
+target_include_directories(super_science INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(super_science INTERFACE cxx_std_17)
+
+add_executable(qwen3_chat apps/qwen3_chat.cpp)
+target_link_libraries(qwen3_chat PRIVATE super_science)
+
+add_executable(qwen3_cli apps/qwen3_cli.cpp)
+target_link_libraries(qwen3_cli PRIVATE super_science)
+
+add_executable(inference_tests tests/main.cpp)
+target_link_libraries(inference_tests PRIVATE super_science)
+add_executable(safetensors_tests tests/safetensors_test.cpp)
+target_link_libraries(safetensors_tests PRIVATE super_science)
+add_executable(validation_tests tests/validation_test.cpp)
+target_link_libraries(validation_tests PRIVATE super_science)
+add_executable(qwen3_cpu_tests tests/qwen3_cpu_test.cpp)
+target_link_libraries(qwen3_cpu_tests PRIVATE super_science)
+add_executable(qwen3_file_tests tests/qwen3_file_test.cpp)
+target_link_libraries(qwen3_file_tests PRIVATE super_science)
+# Keep assert() active in tests even when the project uses a Release build.
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  target_compile_options(inference_tests PRIVATE -UNDEBUG)
+  target_compile_options(qwen3_cpu_tests PRIVATE -UNDEBUG)
+endif()
+
+enable_testing()
+add_test(NAME inference_tests COMMAND inference_tests)
+add_test(NAME safetensors_tests COMMAND safetensors_tests)
+add_test(NAME validation_tests COMMAND validation_tests)
+add_test(NAME qwen3_cpu_tests COMMAND qwen3_cpu_tests)
+add_test(NAME qwen3_file_tests COMMAND qwen3_file_tests)
+
+add_executable(tokenizer_tests tests/tokenizer_test.cpp)
+target_link_libraries(tokenizer_tests PRIVATE super_science)
+add_test(NAME tokenizer_tests COMMAND tokenizer_tests)
