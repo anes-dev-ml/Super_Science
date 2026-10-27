@@ -29,7 +29,7 @@ def main():
     # shells normally write UTF-8. Accept either, including UTF-8 BOM.
     with args.cpp_logits.open("rb") as source:
         signature = source.read(4)
-    file_encoding = "utf-16" if signature.startswith((b"\\xff\\xfe", b"\\xfe\\xff")) else "utf-8-sig"
+    file_encoding = "utf-16" if signature[:2] in (bytes((255, 254)), bytes((254, 255))) else "utf-8-sig"
     with args.cpp_logits.open(encoding=file_encoding) as infile:
         for expected_index, line in enumerate(infile):
             index, value = line.split()
