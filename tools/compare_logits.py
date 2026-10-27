@@ -25,7 +25,12 @@ def main():
         reference = model(input_ids=ids).logits[0, -1].float().cpu()
 
     cpp = []
-    with args.cpp_logits.open(encoding="utf-8") as infile:
+    # PowerShell 5.1 redirects stdout as UTF-16LE. PowerShell 7 and other
+    # shells normally write UTF-8. Accept either, including UTF-8 BOM.
+    with args.cpp_logits.open("rb") as source:
+        signature = source.read(4)
+    file_encoding = "utf-16" if signature.startswith((b"\\xff\\xfe", b"\\xfe\\xff")) else "utf-8-sig"
+    with args.cpp_logits.open(encoding=file_encoding) as infile:
         for expected_index, line in enumerate(infile):
             index, value = line.split()
             if int(index) != expected_index:
