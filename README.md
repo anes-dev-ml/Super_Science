@@ -152,9 +152,14 @@ source does not imply permission to reuse or redistribute it. See [LICENSE](LICE
 
 ## Status and future exploration
 
-**Experimental.** Before describing the project as independently validated,
-record successful native build/test runs, tokenizer golden-token parity,
-and full-checkpoint Qwen3 logit comparisons.
+**Experimental, with independently compared test cases.** On a local Windows
+Release build, three Qwen3-0.6B logit comparisons matched Hugging Face within
+0.000069 maximum absolute error; 15/15 plain-text tokenizer cases produced
+identical token IDs; and 3/3 cached-generation comparisons produced identical
+greedy tokens (12 total). These are user-reported results for bounded test
+cases, not production correctness or performance guarantees. The complete
+CTest report, longer-context edge cases, chat-template parity, and CI run
+results are tracked separately in [validation](docs/validation.md).
 
 Possible later investigations: SIMD kernels, quantization, deeper memory
 profiling, and additional numerical reference tests. A production AI assistant,
