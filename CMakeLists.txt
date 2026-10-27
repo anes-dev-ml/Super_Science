@@ -26,6 +26,9 @@ target_link_libraries(qwen3_cli PRIVATE super_science)
 
 add_executable(tokenizer_cli apps/tokenizer_cli.cpp)
 target_link_libraries(tokenizer_cli PRIVATE super_science)
+if(WIN32)
+  target_link_libraries(tokenizer_cli PRIVATE shell32)
+endif()
 
 add_executable(inference_tests tests/main.cpp)
 target_link_libraries(inference_tests PRIVATE super_science)
