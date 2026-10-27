@@ -25,7 +25,7 @@ The CMake configuration registers six test executables:
 
 Assertions are explicitly enabled for some test targets in Release configurations. The test suite is also configured to run through GitHub Actions on Windows and Ubuntu.
 
-A complete local CTest result has not yet been provided for review. Build or CI success should be reported only after checking the associated output.
+A complete local CTest result has not yet been provided for review. GitHub Actions has completed successfully on earlier commits; verify the workflow for the intended release commit before publishing.
 
 ## Reference model
 
@@ -99,4 +99,4 @@ The benchmark checks numerical agreement before timing the alternative implement
 
 The reference comparisons cover one checkpoint and a small collection of token sequences. Additional useful tests include longer contexts, chat-template formatting, cancellation behavior, cross-platform numerical accuracy, and error cases for external inputs.
 
-GitHub Actions is configured for Windows and Linux builds and CTest, but workflow configuration alone is not evidence of a passing run. See the repository's [Actions page](../.github/workflows/ci.yml) for the workflow definition and GitHub for live results.
+GitHub Actions builds and runs CTest on Windows and Linux. See the [workflow definition](../.github/workflows/ci.yml) and the [live results](https://github.com/anes-dev-ml/Super_Science/actions). Past successful runs do not guarantee that a newer commit also passes.
