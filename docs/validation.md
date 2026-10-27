@@ -30,7 +30,7 @@ Some tests use `assert()`. The CMake configuration deliberately undefines
 `NDEBUG` for these test targets in Release mode. An external CI run and a
 local Windows build should confirm those compiler settings.
 
-**Verified test results for the current release: not yet recorded.**
+**Local CTest status:** build commands were run by the project author, but complete CTest output has not been supplied here. Do not claim a verified 6/6 suite pass until the output or CI run confirms it.
 
 ## 2. Matrix multiplication benchmark
 
@@ -65,7 +65,7 @@ For a meaningful report, record:
 - Matrix dimensions, each algorithm's median, and whether correctness passed
 - Warmup count, number of repetitions, and other machine load
 
-**Verified timing results for the current release: not yet recorded.**
+**Measured timings:** not yet supplied; no benchmark performance claim is made.
 No speedup ratio should be quoted without the corresponding measurements.
 
 ## 3. Compare Qwen3 logits against Hugging Face
@@ -96,7 +96,23 @@ Run on several fixed sequences, including repeated tokens and longer context.
 Float32 reduction order may differ across implementations; numerical tolerance
 must be justified by measured error, not assumed exact equality.
 
-**Independent full-checkpoint comparison results: not yet recorded.**
+**User-reported Qwen3-0.6B comparison results (2026-10-26, local Windows Release build):**
+
+| Token IDs | Maximum absolute error | Mean absolute error | Top token agreement |
+| --- | ---: | ---: | --- |
+| `1 2 3` | 0.000028014 | 0.000004843 | Yes (16) |
+| `1 2 3 4 5 6 7 8 9 10` | 0.000053167 | 0.000008950 | Yes (4999) |
+| `100 100 100 100 100 100` | 0.000068665 | 0.000009012 | Yes (14582) |
+
+For a Windows PowerShell 5.1 shell, redirection may create a UTF-16 text file.
+The comparison script supports UTF-16 BOM, UTF-8 BOM, and normal UTF-8.
+
+**Autoregressive KV-cache check (user-reported, 2026-10-26):**
+Cached C++ greedy generation matched independent Hugging Face `use_cache=False`
+full-context generation for 3/3 prompts (12 generated tokens).
+The observed sequences were `[3, 4, 3, 4]`,
+`[14582, 25, 1019, 40]`, and `[358, 1477, 279, 897]`.
+These are bounded test results, not proof of arbitrary context-length equivalence.
 
 ## 4. Tokenizer verification
 
@@ -112,7 +128,20 @@ token-ID vectors produced by the upstream tokenizer for:
 - spaces, line endings and numeric runs
 - chat templates with thinking enabled/disabled
 
-**Golden token-ID parity results: not yet recorded.**
+**User-reported tokenizer parity (2026-10-26):** 15/15 exact token-ID matches
+against `transformers.AutoTokenizer` using the local Qwen3-0.6B `tokenizer.json`,
+including accented French, Asian scripts, Arabic, emoji, code, and whitespace.
+
+Reproduce locally (after building `tokenizer_cli`):
+
+```powershell
+python -m pip install transformers tokenizers
+python tools/compare_tokenizer.py models/qwen3-0.6b build-audit/Release/tokenizer_cli.exe
+```
+
+This tests plain-text token encoding, **not** official chat-template parity.
+The Windows CLI reads Unicode command-line arguments through the wide-character
+OS API and converts to UTF-8 before calling the tokenizer.
 
 ## 5. Limitations that affect interpretation
 
@@ -125,16 +154,23 @@ hardening is claimed.
 The Qwen3 sample model, weights, and tokenizer artifacts are not included in
 the repository. Respect the model's upstream license when obtaining them.
 
-## 6. Verification status
+## 6. CI and evidence status
+
+GitHub Actions workflow `.github/workflows/ci.yml` builds Release configurations
+and executes CTest on Windows and Ubuntu. Workflow results must be checked on
+GitHub after a push; creating the workflow does not prove that it passes.
 
 | Evidence | Status |
 | --- | --- |
-| Source code and unit tests present | Confirmed by code inspection |
-| Compiler-independent Release assertions | CMake patch committed, requires build verification |
-| Windows/MinGW or MSVC test run | Not yet independently executed |
-| Matmul benchmark correctness and timings | Benchmark source committed, requires execution |
-| Reference Qwen3 logit accuracy | Comparison script exists, results not yet supplied |
-| Exact Qwen3 tokenizer token-ID parity | Not yet established |
+| Original C++ inference and tokenizer source | Reviewed in repository |
+| Hugging Face numerical logit comparison | 3/3 user-reported passes |
+| Official plain-text tokenizer token-ID comparison | 15/15 user-reported passes |
+| Qwen3 cached vs full-context greedy generation | 3/3 user-reported passes |
+| Complete CTest Release result | Output not yet reviewed |
+| Benchmark results | Not yet supplied |
+| GitHub Actions Windows and Linux runs | Workflow committed; run results not yet verified |
+| Official chat-template equivalence, long-context regression | Not yet independently checked |
 
-Update this page with **actual** command outputs, the date, compiler, model
-revision, and hardware after running the checks.
+Model checkpoint revision, operating system, and compiler details should be
+captured with any published reproducibility report. This document intentionally
+does not assert broad production correctness or performance guarantees.
