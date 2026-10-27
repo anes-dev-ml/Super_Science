@@ -1,0 +1,28 @@
+name: C++ build and tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-tests:
+    name: ${{ matrix.os }} / Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build-ci -DSUPER_SCIENCE_BUILD_DESKTOP=OFF -DSUPER_SCIENCE_USE_OPENMP=OFF
+      - name: Compile
+        run: cmake --build build-ci --config Release --parallel 2
+      - name: Run tests
+        run: ctest --test-dir build-ci -C Release --output-on-failure
